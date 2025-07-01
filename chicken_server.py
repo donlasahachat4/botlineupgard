@@ -6720,6 +6720,7 @@ def verify_slip():
 
         decoded_objects = decode(image)
         if not decoded_objects:
+            os.remove(file_path)
             return jsonify({"error": "QR code not found"}), 400
         qr_code = decoded_objects[0].data.decode("utf-8")
 
@@ -6971,8 +6972,10 @@ def change_admin_slip():
         # Decode QR code
 
         decoded_objects = decode(image)
-        for obj in decoded_objects:
-            qr_code = obj.data.decode("utf-8")
+        if not decoded_objects:
+            os.remove(file_path)
+            return jsonify({"error":"QR code not found"}),400
+        qr_code = decoded_objects[0].data.decode("utf-8")
 
 
         headers = {

@@ -17,12 +17,14 @@ import random
 import string
 import threading
 import math
+import bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from functools import wraps
 import json
 import pytz
 from pyzbar.pyzbar import decode
 app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'aa123456'
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'change-me')
 jwt = JWTManager(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins='*')
@@ -30,9 +32,10 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 #domain = "https://cus2.witheeit.xyz"
 domain = "https://cus2.witheeit.xyz/"
 
-Channel_access_token = "G6r1dH3xBH3iQMnnk9gJY2xUmUvdWW5q46b33jg6PjoKWhDin6Qh/b9ptyt2dIG7xrI9kfDSHyaRIkecZoNpX8uSN9AZdYoaibLCsLWwjXRBolIdjK4YcLIfRmPi8uIRRqH5Zj+NNKZ85CBt5aHHDgdB04t89/1O/w1cDnyilFU="
+# Tokens are provided via environment variables for security
+Channel_access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN', '')
 
-line_notify_token = 'WFJAUkO7gFZMQUt6k3qpMKbdhNubVHbD7K7hoo81rmd'
+line_notify_token = os.environ.get('LINE_NOTIFY_TOKEN', '')
 # line_notify_token = 'BxIZDd6bnTXnNeJm1BjeH9IOKTYqAhcJgtPYooUZDlL'
 # possibilities = ['p1','p2','p3','p4']
 
@@ -64,10 +67,26 @@ except:
     ntf_room =''
 
 UPLOAD_FOLDER = 'slip_test'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True) 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-EASY_TOKEN = "e73424b5-d1a7-4340-8975-0972f4321f72"
-SLIP2GO = "Hg3pZxCNxxxzvwGRosBs5Z0NPqe2bL6256_Ri+Vunko="
+MIN_DEPOSIT = int(os.environ.get('MIN_DEPOSIT', '100'))
+
+def admin_required(fn):
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        user = get_jwt_identity()
+        with sqlite3.connect(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT role FROM admin_group WHERE user_id=?', (user,))
+            row = cursor.fetchone()
+        if not row or row[0] != 'admin':
+            return jsonify({'message': 'Admin access required'}), 403
+        return fn(*args, **kwargs)
+    return wrapper
+
+EASY_TOKEN = os.environ.get('EASY_TOKEN', '')
+SLIP2GO = os.environ.get('SLIP2GO_TOKEN', '')
 EASYSLIP_API_URL = "https://developer.easyslip.com/api/v1/verify"
 SLIP2GO_API_URL = 'https://connect.slip2go.com/api/verify-slip/qr-code'
 LINK_ROOM = "https://line.me/R/ti/g/tMmcbRuf27"
@@ -692,9 +711,19 @@ def init_db():
             transaction_id TEXT,
             slip_path TEXT,
             amount INT,
-            status TEXT       
+            status TEXT
                    )
 ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS withdraw_request(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            amount INT,
+            status TEXT,
+            datetime TEXT
+        )
+    ''')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ntf(
@@ -5158,6 +5187,7 @@ def webhook():
         return '200 OK'
 
 @app.route('/get_data', methods=['GET'])
+@admin_required
 def get_data():
     round_value = get_present_round()
     if not round_value:
@@ -5232,6 +5262,7 @@ def get_data():
     return jsonify(bet_summary)
 
 @app.route('/get_admin_data',methods=['GET'])
+@admin_required
 def get_admin_data():
     send_data={
         'username': 'admin',
@@ -5245,6 +5276,7 @@ def get_admin_data():
     return jsonify(all_data)
 
 @app.route('/get_conclude_bet', methods=['GET'])
+@admin_required
 def get_conclude_bet():
     round_value = request.args.get('round', None)
     
@@ -5321,6 +5353,7 @@ def check_role():
         return 'Error', 200
 
 @app.route('/get_profit', methods=['GET'])
+@admin_required
 def get_profit():
     # Retrieve pagination parameters (defaults: page 1, limit 10)
     try:
@@ -5423,6 +5456,7 @@ def get_profit():
         return '200'
             
 @app.route('/get_deposit', methods=['GET'])
+@admin_required
 def get_deposit():
     # Retrieve pagination and search parameters (defaults: page 1, limit 10)
     try:
@@ -5551,6 +5585,7 @@ def get_deposit():
         return jsonify({'status': '500', 'error': str(e)}), 500  # Internal server error
 
 @app.route('/get_withdraw', methods=['GET'])
+@admin_required
 def get_withdraw():
     # Retrieve pagination and search parameters (defaults: page 1, limit 10)
     try:
@@ -5692,6 +5727,7 @@ def get_withdraw():
 
         
 @app.route('/get_user_info', methods=['GET'])
+@admin_required
 def get_user_info():
     # Get page, limit, and search parameters from the request, with defaults
     page = request.args.get('page', default=1)
@@ -5816,6 +5852,7 @@ def get_user_info():
         })
 
 @app.route('/get_amount_data', methods=['GET'])
+@admin_required
 def get_amount_data():
 
     round_value = get_present_round()
@@ -5864,6 +5901,7 @@ def get_amount_data():
         return jsonify(total_bets)
 
 @app.route('/get_round_price', methods=['GET'])
+@admin_required
 def get_round_price():
     round_value = request.args.get('round', None)
     if not round_value:
@@ -5925,6 +5963,7 @@ def get_round_price():
         return jsonify(all_data)
     
 @app.route('/get_sround_bet', methods=['GET'])
+@admin_required
 def get_sround_bet():
     sub_round = request.args.get('sub_round', '')
     round_value = request.args.get('round', '')
@@ -5993,7 +6032,16 @@ def login():
         pw = cursor.fetchone()
 
     if pw:
-        if password == pw[0]:  # This should use a hashed password check
+        stored = pw[0]
+        valid = False
+        try:
+            valid = bcrypt.checkpw(password.encode(), stored.encode())
+        except Exception:
+            pass
+        if not valid and password == stored:
+            valid = True
+
+        if valid:
             access_token = create_access_token(identity=username, expires_delta=False)
             return jsonify({
                 'status': 200,
@@ -6012,24 +6060,33 @@ def login():
         }), 404
     
 @app.route('/change_password', methods=['POST'])
+@jwt_required()
 def change_password():
     data = request.get_json()
 
-    username = data.get('username')
+    username = get_jwt_identity()
     old_pass = data.get('old_password')
     new_pass = data.get('new_password')
     
     with sqlite3.connect(db_name) as conn:
         cursor = conn.cursor()
-        # Fetch the current password for the username
         cursor.execute("SELECT password FROM user_pass WHERE username = ?", (username,))
         pw = cursor.fetchone()
 
         if pw:
-            if old_pass == pw[0]:
-                # Update the password
-                cursor.execute("UPDATE user_pass SET password = ? WHERE username = ?", (new_pass, username))
-                conn.commit()  # Commit the transaction
+            stored = pw[0]
+            valid = False
+            try:
+                valid = bcrypt.checkpw(old_pass.encode(), stored.encode())
+            except Exception:
+                pass
+            if not valid and old_pass == stored:
+                valid = True
+
+            if valid:
+                hashed = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt()).decode()
+                cursor.execute("UPDATE user_pass SET password = ? WHERE username = ?", (hashed, username))
+                conn.commit()
                 return {"data":"","status": 200, "message": "Password updated successfully."}
             else:
                 return {"data":"","status": 400, "message": "Old password is incorrect."}
@@ -6235,6 +6292,7 @@ def get_result():
     return jsonify(final_data)
 
 @app.route('/get_setting')
+@admin_required
 def get_setting():
     with sqlite3.connect(db_name) as conn:
         cursor = conn.cursor()
@@ -6266,6 +6324,7 @@ def get_setting():
             return jsonify(send_data)
 
 @app.route('/change_setting', methods=['POST'])
+@admin_required
 def change_setting():
     try:
         data = request.get_json()
@@ -6299,6 +6358,7 @@ def change_setting():
         return jsonify({"error": f"An error occurred: {e}"}), 500
 
 @app.route('/save_setting', methods=['POST'])
+@admin_required
 def save_setting():
     try:
         # Directory to save uploaded pictures
@@ -6659,8 +6719,9 @@ def verify_slip():
         # Decode QR code
 
         decoded_objects = decode(image)
-        for obj in decoded_objects:
-            qr_code = obj.data.decode("utf-8")
+        if not decoded_objects:
+            return jsonify({"error": "QR code not found"}), 400
+        qr_code = decoded_objects[0].data.decode("utf-8")
 
         with open(file_path, "rb") as image_file:
             base64_encoded = base64.b64encode(image_file.read()).decode("utf-8")
@@ -6696,9 +6757,10 @@ def verify_slip():
                 row = cursor.fetchone()
                 cursor.execute('SELECT acc_name,acc_num FROM user_profiles WHERE user_id = ?',(user_id,))
                 acc_name,acc_num = cursor.fetchone()
+                receive_name = None
                 if row:
                     retrieved_json = json.loads(row[0])  # Convert string back to JSON
-                    receive_name = retrieved_json['account']['name']
+                    receive_name = retrieved_json.get('account',{}).get('name')
                 amount = data.get('amount',0)
                 if amount != 0:
                     cursor.execute("UPDATE incomming_slip SET amount = ? WHERE transaction_id = ?", (amount, transaction_id))
@@ -6707,7 +6769,7 @@ def verify_slip():
             if data:
                 print(data)
                 print('receiver_name',receive_name)
-                if data['receiver']['account']['name']==receive_name:# or data['receiver']['account']['name']['th']==receive_name_en:
+                if receive_name and data['receiver']['account']['name']==receive_name:
                     print(acc_num)
                     print(rsp_acc_num_info)
 
@@ -6719,6 +6781,12 @@ def verify_slip():
                         print('correct Account')
                         amount = data.get('amount',0)
                         if amount != 0:
+                            if amount < MIN_DEPOSIT:
+                                with sqlite3.connect(db_name) as conn:
+                                    cursor = conn.cursor()
+                                    cursor.execute("UPDATE incomming_slip SET status = ? WHERE transaction_id = ?", (2, transaction_id))
+                                    conn.commit()
+                                return jsonify({"message": "Deposit amount below minimum"}), 400
                             with sqlite3.connect(db_name) as conn:
                                 cursor = conn.cursor()
                                 cursor.execute("""SELECT id,acc_num,acc_name FROM user_profiles WHERE user_id = ?""",(user_id,))
@@ -6730,10 +6798,8 @@ def verify_slip():
                                 update_balance(game_id,amount,'+',admin_id='SLIP_VERIFIED',pic=f'slip_link/{file_name}')
 
                 else:
-                    print('ERRROR 1')
+                    return jsonify({"message": "unsuccess"}), 203
                     
-                if amount <= 100:
-                    return jsonify({"message": "เติมเงินไม่ถึง 100 บาท "}), 201            
             else:
                 return jsonify({"message": "unsuccess"}), 203
             
@@ -6755,6 +6821,7 @@ def slip_link(filename):
     return send_from_directory('slip_test', filename)
 
 @app.route('/get_all_slip', methods=['GET'])
+@admin_required
 def get_all_slip():
     page = request.args.get('page', default=1, type=int)  # Get page number (default=1)
     per_page = request.args.get('per_page', default=10, type=int)  # Items per page (default=10)
@@ -6822,6 +6889,7 @@ def get_all_slip():
         })
 
 @app.route('/change_amount_slip',methods=['POST'])
+@admin_required
 def change_amount_slip():
     try:
         data = request.get_json()
@@ -6838,6 +6906,7 @@ def change_amount_slip():
         return jsonify({'data':[],'status':202,'message':f'error:{e}'})
 
 @app.route('/confirm_slip',methods=['POST'])
+@admin_required
 def confirm_slip():
     try:
         data = request.get_json()
@@ -6873,6 +6942,7 @@ def slip_test(filename):
     return send_from_directory('slip_test', filename)
 
 @app.route('/change_admin_slip',methods=['POST'])
+@admin_required
 def change_admin_slip():
 
     try:
@@ -6931,17 +7001,81 @@ def change_admin_slip():
             return jsonify({'message':'unsuccess','status':200})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/request_withdraw', methods=['POST'])
+@jwt_required()
+def request_withdraw():
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        amount = data.get('amount')
+        if not amount:
+            return jsonify({'message':'amount required'}),400
+
+        thailand_tz = pytz.timezone('Asia/Bangkok')
+        timestamp = datetime.now(thailand_tz).strftime('%Y-%m-%d %H:%M:%S')
+
+        with sqlite3.connect(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO withdraw_request (user_id, amount, status, datetime) VALUES (?,?,?,?)',
+                           (user_id, amount, 0, timestamp))
+            conn.commit()
+        return jsonify({'message':'success'}),200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/confirm_withdraw', methods=['POST'])
+@admin_required
+def confirm_withdraw():
+    try:
+        data = request.get_json()
+        req_id = data.get('request_id')
+        with sqlite3.connect(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT user_id, amount, status FROM withdraw_request WHERE id=?', (req_id,))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({'message':'not found'}),404
+            user_id, amount, status = row
+            if status == 1:
+                return jsonify({'message':'already confirmed'}),400
+            cursor.execute('UPDATE withdraw_request SET status=1 WHERE id=?', (req_id,))
+            cursor.execute('SELECT id FROM user_profiles WHERE user_id=?', (user_id,))
+            game_row = cursor.fetchone()
+            if game_row:
+                game_id = game_row[0]
+                update_balance(game_id, amount, '-', admin_id='WITHDRAW')
+            conn.commit()
+        return jsonify({'message':'success'}),200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/get_withdraw_requests', methods=['GET'])
+@admin_required
+def get_withdraw_requests():
+    try:
+        with sqlite3.connect(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, user_id, amount, status, datetime FROM withdraw_request ORDER BY id DESC')
+            rows = cursor.fetchall()
+            result = []
+            for rid, uid, amt, st, ts in rows:
+                cursor.execute('SELECT id, display_name FROM user_profiles WHERE user_id=?', (uid,))
+                urow = cursor.fetchone()
+                if urow:
+                    gid, name = urow
+                    result.append({'request_id': rid, 'game_id': gid, 'username': name, 'amount': amt, 'status': st, 'time': ts})
+        return jsonify({'data': result, 'status': 200})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 # @app.route('/',methods=['get'])
 # def register_page():
 #     return render_template('register.html')
 
 @app.route('/check_password_listuser',methods=['GET'])
+@admin_required
 def check_password_listuser():
-    password = request.args.get('password')
-    if password == 'bmw500':
-        return jsonify({'message':'success','status':200})
-    else:
-        return jsonify({'message':'unsuccess','status':202})
+    return jsonify({'message':'success','status':200})
 
 @app.route('/register',methods=['get'])
 def register_page():

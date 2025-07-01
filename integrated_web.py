@@ -81,6 +81,7 @@ UPLOAD_FOLDER = os.path.join("static", "uploads")
 BET_ALERT = float(os.getenv("BET_ALERT", "10000"))
 PROMPTPAY_ID = os.getenv("PROMPTPAY_ID")
 LOGO_TEXT = os.getenv("LOGO_TEXT", "NN888")
+LINE_ADMIN_IDS = set(filter(None, os.getenv("LINE_ADMIN_IDS", "").split(",")))
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -773,11 +774,56 @@ def line_webhook():
         reply_token = ev.get("replyToken")
         line_uid = ev["source"].get("userId")
         text = ev["message"].get("text", "").strip()
+        is_admin = line_uid in LINE_ADMIN_IDS
         if text.lower().startswith("link "):
             token = text.split(" ", 1)[1]
             msg = link_user_account(db, User, Wallet, token, line_uid)
             reply_message(reply_token, msg)
             continue
+        if is_admin:
+            m = re.match(r"open\s+(\d+(?:\.\d+)?)[/ ](\d+(?:\.\d+)?)", text.lower())
+            if m:
+                red = float(m.group(1))
+                blue = float(m.group(2))
+                Round.query.filter_by(status="open").update({"status": "closed"})
+                rnd = Round(status="open", red_odds=red, blue_odds=blue)
+                db.session.add(rnd)
+                db.session.commit()
+                socketio.emit(
+                    "round_open",
+                    {"red_odds": red, "blue_odds": blue, "totals": {"red": 0, "blue": 0}},
+                    broadcast=True,
+                )
+                socketio.emit("totals", {"red": 0, "blue": 0}, broadcast=True)
+                push_message_to_line("\ud83c\udfc1 A new betting round is now open!")
+                push_message_to_line(f"\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e15\u0e48\u0e2d\u0e23\u0e2d\u0e07\u0e04\u0e37\u0e2d {red}/{blue}, \u0e40\u0e23\u0e34\u0e48\u0e21\u0e40\u0e14\u0e34\u0e21\u0e1e\u0e31\u0e19\u0e44\u0e14\u0e49\u0e40\u0e25\u0e22")
+                reply_message(reply_token, "รอบเปิดแล้ว")
+                continue
+            if text.lower().startswith("close"):
+                rnd = get_open_round()
+                if rnd:
+                    rnd.status = "closed"
+                    db.session.commit()
+                    socketio.emit("round_close", broadcast=True)
+                    push_message_to_line("\u0e1b\u0e34\u0e14\u0e23\u0e2d\u0e1a")
+                    reply_message(reply_token, "ปิดรอบแล้ว")
+                else:
+                    reply_message(reply_token, "ยังไม่เปิดรอบ")
+                continue
+            m = re.match(r"result\s+(red|blue)", text.lower())
+            if m:
+                winner = m.group(1)
+                rnd = Round.query.filter_by(status="closed").order_by(Round.id.desc()).first()
+                if not rnd:
+                    reply_message(reply_token, "no closed round")
+                else:
+                    rnd.status = "settled"
+                    rnd.result = winner
+                    db.session.commit()
+                    socketio.emit("result_announced", {"winner": winner}, broadcast=True)
+                    push_message_to_line(f"\u0e1c\u0e25 {winner} \u0e0a\u0e19\u0e30")
+                    reply_message(reply_token, f"ประกาศผล {winner} ชนะ")
+                continue
         if re.match(r"^(แดง|น้ำเงิน)\s+\d+", text):
             side_txt, amt = text.split()[:2]
             side = "red" if side_txt.startswith("แดง") else "blue"
@@ -820,7 +866,7 @@ def line_webhook():
                 {"user_id": user.id if user else line_uid, "balance": float(wallet.balance)},
                 broadcast=True,
             )
-            reply_message(reply_token, "บันทึกการเดิมพันแล้ว")
+            reply_message(reply_token, f"\u2705 Bet recorded: {'Red' if side == 'red' else 'Blue'} {amount}")
             continue
         if text.lower() in {"c", "cc"}:
             user = User.query.filter_by(line_user_id=line_uid).first()

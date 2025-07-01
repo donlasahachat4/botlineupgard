@@ -7,3 +7,9 @@ flask-jwt-extended
 pytz
 pyzbar
 eventlet
+pymysql
+flask_sqlalchemy
+python-dotenv
+flask-login
+bcrypt
+qrcode

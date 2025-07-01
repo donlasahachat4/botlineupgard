@@ -12,6 +12,7 @@ front‑end and MySQL database.
 2. Set the following environment variables before running the server:
    - `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASS`, `MYSQL_DB`
    - `LINE_ACCESS_TOKEN` and `LINE_GROUP_ID`
+   - `LINE_ADMIN_IDS` (comma separated LINE user IDs with admin privileges)
    - `LINE_CLIENT_ID`, `LINE_CLIENT_SECRET`, `LINE_REDIRECT_URI`
    - `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET`
    - `STREAM_URL` (HLS URL for the live video, optional)
@@ -37,6 +38,11 @@ python3 app.py
 Open `http://localhost:8000/` for the betting page and `http://localhost:8000/admin`
 for the admin dashboard.  Bets and admin actions are broadcast in real time to all
 connected clients and mirrored to the LINE group via the Messaging API.
+Admins listed in `LINE_ADMIN_IDS` can also control rounds directly from the LINE chat.
+Commands include:
+`open <red>/<blue>` to start a round, `close` to lock betting and
+`result <red|blue>` to declare the winner. These actions update the
+database, emit Socket.IO events, and broadcast notifications to the group.
 
 ### Manual test checklist
 

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Slip</title>
+  <style>
+    body {
+      font-family: 'Prompt', sans-serif;
+      background: #2B2D42;
+      text-align: center;
+      padding: 1rem;
+      display: none;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 100%;
+      margin: auto;
+      padding: 1rem;
+      border-radius: 12px;
+      background: #3A3D5A;
+      box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+     
+    }
+
+    h2 {
+      color: #E0E0E0;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .upload-label {
+      display: block;
+      padding: 12px 15px;
+      background: #D14D72;
+      color: white;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 15px 0;
+      transition: 0.3s;
+    }
+
+    .upload-label:hover {
+      background: #B03E5C;
+    }
+
+    .preview {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      display: none;
+      border: 2px solid #4B527E;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .buttons {
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .confirm {
+      background: #5F8670;
+      color: white;
+    }
+
+    .confirm:hover {
+      background: #4E725C;
+    }
+
+    .reset {
+      background: #9B4444;
+      color: white;
+    }
+
+    .reset:hover {
+      background: #7F3737;
+    }
+
+    .error-msg {
+      color: #FF7B7B;
+      font-size: 14px;
+      display: none;
+    }
+
+    #imageDisplay {
+      width: 100%;
+      object-fit: contain;
+      height: auto;
+      border-radius: 0.5rem;
+    }
+    .text-warning {
+      color:red;
+      font-size: 16px;
+      font-weight: 700;
+      margin: 1rem 0;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <img id="imageDisplay" alt="imageDisplay">
+  </div>
+  <p  class="text-warning"><small> ***  ชื่อบัญชีโอนต้องตรงกับชื่อสมัครเท่านั้น ***</small></p>
+  <p  class="text-warning"><small> ***  ฝากขั้นต่ำ 100 บาท ***</small></p>
+  <div class="container">
+
+    <h2>อัปโหลดสลิปเพื่อยืนยัน</h2>
+
+    <label for="slipUpload" class="upload-label">📤 เลือกรูปภาพ</label>
+    <input type="file" id="slipUpload" accept="image/png, image/jpeg, image/jpg, image/webp">
+
+    <p class="error-msg" id="error-msg"></p>
+
+    <img id="slipPreview" class="preview" alt="Preview Slip">
+
+    <div class="buttons">
+      <button class="confirm" id="confirmBtn" disabled>✅ ยืนยัน</button>
+      <button class="reset" id="resetBtn">❌ ล้างค่า</button>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+  <script>
+
+    let domain = "https://cus2.witheeit.xyz";
+    let userID = "iam1234";
+    let uploadedFile = null;
+    let loading = false;
+    const slipUpload = document.getElementById("slipUpload");
+    const slipPreview = document.getElementById("slipPreview");
+    const confirmBtn = document.getElementById("confirmBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const errorMsg = document.getElementById("error-msg");
+    const imageElement = document.getElementById("imageDisplay");
+
+
+
+
+
+
+
+
+    window.onload = function () {
+      const queryString = window.location.search;
+
+      if (queryString) {
+        login();
+      } else {
+        liff
+          .init({
+            liffId: "2006843393-vKZnkK6w",
+          })
+          .then(async () => {
+            if (liff.isLoggedIn()) {
+              liff.getProfile().then(async (profile) => {
+                userID = profile.userId;
+                document.body.style.display = "block";
+                getBankPicture()
+              });
+            } else {
+              login();
+            }
+          });
+      }
+    };
+    function login() {
+      liff
+        .init({
+          liffId: "2006843393-vKZnkK6w",
+        })
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          liff.getProfile().then(async (profile) => {
+            userID = profile.userId;
+            document.body.style.display = "block";
+            getBankPicture()
+          });
+        });
+    }
+
+
+
+    async function getBankPicture() {
+
+      try {
+        // เรียก API
+        const response = await axios.get(`${domain}/get_bank_picture`);
+
+        if (response.data.link !== "") {
+          imageElement.src = response.data.link;
+        }
+
+
+
+
+
+
+      } catch (error) {
+
+        alert("server มีปัญหากรุณาลองใหม่อีกครั้ง!")
+
+      }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    slipUpload.addEventListener("change", function (event) {
+      const file = event.target.files[0];
+
+      if (file) {
+        if (!file.type.startsWith("image/")) {
+          errorMsg.textContent = "❌ กรุณาเลือกไฟล์รูปภาพเท่านั้น!";
+          errorMsg.style.display = "block";
+          slipUpload.value = "";
+          return;
+        }
+
+        errorMsg.style.display = "none";
+
+        if (file.size > 256 * 1024) {
+          compressImage(file, 256 * 1024, function (compressedFile) {
+            uploadedFile = compressedFile;
+            displayImage(compressedFile);
+          });
+        } else {
+          uploadedFile = file;
+
+          displayImage(file);
+        }
+      }
+    });
+
+    function displayImage(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        slipPreview.src = e.target.result;
+        slipPreview.style.display = "block";
+        confirmBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function compressImage(file, maxSize, callback) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = function (event) {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          let width = img.width;
+          let height = img.height;
+          const scaleFactor = Math.sqrt((maxSize * 0.8) / file.size);
+
+          width *= scaleFactor;
+          height *= scaleFactor;
+          canvas.width = width;
+          canvas.height = height;
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(function (blob) {
+            callback(new File([blob], file.name, { type: "image/jpeg" }));
+          }, "image/jpeg", 0.8);
+        };
+      };
+    }
+
+
+    confirmBtn.addEventListener("click", function () {
+      VerifySlip()
+    });
+
+
+    resetBtn.addEventListener("click", function () {
+      slipUpload.value = "";
+      slipPreview.src = "";
+      slipPreview.style.display = "none";
+      confirmBtn.disabled = true;
+      uploadedFile = null;
+
+    });
+
+
+    async function VerifySlip() {
+      if (loading) {
+        return;
+      }
+
+      if (!uploadedFile) {
+
+        alert("❌ กรุณาอัปโหลดรูปภาพก่อน!")
+        return;
+      }
+      loading = true
+
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+
+      try {
+        // เรียก API
+        const response = await axios.post(`${domain}/verify_slip?user_id=${userID}`, formData);
+
+
+        if (response.data.message === "success") {
+          slipUpload.value = "";
+          slipPreview.src = "";
+          slipPreview.style.display = "none";
+          confirmBtn.disabled = true;
+          uploadedFile = null;
+
+          alert("✅ อัพโหลดสำเร็จแล้ว!");
+
+          if (response.data.link_room !== "") {
+            window.open(response.data.link_room, "_self");
+          }
+
+        } else {
+
+          alert("❌ อัพโหลดไม่สำเร็จ!!!")
+          slipUpload.value = "";
+          slipPreview.src = "";
+          slipPreview.style.display = "none";
+          uploadedFile = null;
+        }
+
+
+
+        setTimeout(() => {
+          loading = false
+        }, 1000);
+
+
+
+      } catch (error) {
+
+        alert("server มีปัญหากรุณาลองใหม่อีกครั้ง!")
+
+      }
+    }
+
+
+
+
+
+
+  </script>
+
+</body>
+
+</html>

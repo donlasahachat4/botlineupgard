@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="login-container">
+      <h1>Login</h1>
+      <form id="loginForm">
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+      </form>
+      <p id="errorMessage" class="error-message"></p>
+    </div>
+    <!-- <script src="script.js"></script> -->
+  </body>
+</html>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="login.js"></script>
+<script>
+  let domain = "https://cus2.witheeit.xyz";
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+
+      login();
+      // ตัวอย่างการตรวจสอบ (ควรเปลี่ยนเป็น API Call ในการใช้งานจริง)
+    
+    });
+
+    const login = async () => {
+
+      const payload = {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      }
+
+      try {
+        // เรียก API
+        const response = await axios.post(`${domain}/login`,payload);
+        // loadingElement.style.display = 'none'; // ซ่อนข้อความ "Loading"
+        // แสดงข้อมูลใน Card
+
+        if (response.data.status === 200) {
+          localStorage.setItem('token', response.data.data.bearer_token); // เก็บสถานะล็อกอิน
+         
+          window.location.href = '/dashboard.html'; // Redirect ไปหน้า Dashboard
+        }
+   
+
+
+      } catch (error) {
+        document.getElementById('username').value = ""
+        document.getElementById('password').value = ""
+        alert("Username หรือ Password ไม่ถูกต้อง")
+
+      }
+    }
+
+
+
+  </script>
+
+<style>
+  /* styles.css */
+/* Default styles (สำหรับ Desktop) */
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background: linear-gradient(135deg, #74ebd5, #acb6e5);
+}
+
+.login-container {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+h1 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 24px; /* Default font size */
+}
+
+.input-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #74b9ff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: #0984e3;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+/* Media Queries สำหรับหน้าจอขนาดเล็ก */
+@media screen and (max-width: 768px) {
+  body {
+    padding: 10px; /* เพิ่มพื้นที่รอบๆ สำหรับมือถือ */
+  }
+
+  .login-container {
+    width: 100%;
+    max-width: 90%; /* ลดความกว้างสำหรับมือถือ */
+    padding: 15px;
+  }
+
+  h1 {
+    font-size: 20px; /* ลดขนาดฟอนต์ของหัวเรื่อง */
+  }
+
+  input {
+    padding: 8px; /* ลดขนาด Padding ของ Input */
+    font-size: 14px; /* ลดขนาดฟอนต์ */
+  }
+
+  button {
+    padding: 8px;
+    font-size: 14px; /* ลดขนาดฟอนต์ของปุ่ม */
+  }
+
+  .error-message {
+    font-size: 12px; /* ลดขนาดฟอนต์ของข้อความแจ้งเตือน */
+  }
+}
+
+/* Media Queries สำหรับหน้าจอเล็กมาก (เช่น iPhone SE) */
+@media screen and (max-width: 480px) {
+  h1 {
+    font-size: 18px; /* ขนาดฟอนต์เล็กลงอีก */
+  }
+
+  button {
+    font-size: 12px; /* ปรับขนาดปุ่ม */
+  }
+}
+
+</style>

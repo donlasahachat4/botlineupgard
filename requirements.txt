@@ -1,0 +1,9 @@
+flask
+requests
+flask-socketio
+flask-cors
+Pillow
+flask-jwt-extended
+pytz
+pyzbar
+eventlet

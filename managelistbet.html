@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="styles.css">
+  <title>Input Form with Axios</title>
+  <style>
+    h3 {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      color: #333;
+      /* สีข้อความ */
+      text-align: center;
+      /* จัดกึ่งกลาง */
+    }
+
+    #table-container {
+      width: 90%;
+      max-width: 1200px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 15px;
+      text-align: center;
+    }
+
+    th {
+      background: linear-gradient(135deg, #6c63ff, #8e8dfc);
+      color: #fff;
+      text-transform: uppercase;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    tr:nth-child(even) td {
+      background: #f9f9f9;
+    }
+
+    tr:hover td {
+      background: #f0f0ff;
+      color: #333;
+    }
+
+    td {
+      color: #555;
+      font-size: 14px;
+    }
+
+    .no-data {
+      text-align: center;
+      font-size: 16px;
+      color: #888;
+      padding: 20px;
+      background: #f7f7f7;
+    }
+
+    /* Add some animation */
+    table {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .pagination-container {
+      width: 90%;
+      max-width: 1200px;
+    }
+
+    .detail-green {
+
+
+      width: 50%;
+      padding: 8px;
+      font-size: 1em;
+      color: #fff;
+      /* สีข้อความของปุ่ม */
+      background-color: #007BFF;
+      /* สีพื้นหลังของปุ่ม */
+      border: none;
+      border-radius: 6px;
+      /* มุมโค้งมนของปุ่ม */
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      /* เพิ่มแอนิเมชัน */
+    }
+
+    .detail-green:hover {
+      background-color: #0056b3;
+      /* สีเมื่อ hover */
+      transform: translateY(-2px);
+      /* ยกปุ่มเล็กน้อย */
+    }
+
+    .detail-green:active {
+      transform: translateY(0);
+      /* คืนกลับเมื่อกด */
+    }
+
+    .div-btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 7px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="modal" id="password-modal">
+    <div class="modal-content">
+
+      <span class="close-btn" id="close-btn">&times;</span> <!-- ปุ่ม X -->
+      <h2>เปลี่ยนรหัสผ่าน</h2>
+      <form id="password-form">
+        <div class="form-group">
+          <label for="old-password">รหัสผ่านเก่า</label>
+          <input type="password" id="old-password" placeholder="กรุณากรอกรหัสผ่านเก่า" required />
+        </div>
+        <div class="form-group">
+          <label for="new-password">รหัสผ่านใหม่</label>
+          <input type="password" id="new-password" placeholder="กรุณากรอกรหัสผ่านใหม่" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn cancel-btn" id="cancel-btn">Cancel</button>
+          <button type="submit" class="btn confirm-btn">ยืนยัน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="hamburger-pc">
+      <span id="logo-web">W</span>
+      <div class="hamburger" id="hamburger">☰</div>
+    </div>
+    <div class="user-profile">
+      <img src="" alt="Profile" class="profile-pic" id="profile-pic" />
+      <span class="username-admin">TG-kaix361</span>
+      <div class="hamburger" id="hamburger-mobile">☰</div>
+    </div>
+    <div class=" dropdown-menu-profile" id="profile-dropdown">
+      <ul>
+        <a href="/changesetting.html">
+          <li>ตั้งค่าระบบ</li>
+        </a>
+        <a href="/verifyslip.html">
+          <li>อัพโหลดสลิป</li>
+        </a>
+        <a href="/checkverifyslip.html">
+          <li>เติมเงินออโต้</li>
+        </a>
+        <li id="change-password-btn"><a>เปลี่ยนรหัสผ่าน</a></li>
+        <li id="logout-btn"><a>ออกจากระบบ</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <ul>
+      <li class="dropdown ">
+        <!-- <div class="icon">😊</div> -->
+        <div class="profile-icon" onclick="changeIconColor()">
+          <img src="" alt="Profile" class="profile-pic" /> <!-- ไอคอนผู้ใช้ -->
+        </div>
+        <div class="text">
+          <p style="margin: 0;" id="username-sidebar-admin">TG-kaix361</p>
+          <span style="margin: 0;">
+            User</span>
+        </div>
+
+      </li>
+      <p id="welcome">Welcome</p>
+      <li class="dropdown accordion-header">
+        <div class="accordion-header-title">
+          <div class="accordion-header-content">
+
+            <span class="icon">⚙️</span>
+            <span class="text">ไก่ชน/มวยพักยก</span>
+          </div>
+          <div class="accordion-item" id="changeKai">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content">
+              <a href="/changeratekai.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">จัดการอัตราเดิมพัน</span></a>
+            </div>
+          </div>
+        </div>
+        <ul class="dropdown-menu">
+          <h2>ไก่ชน/มวยพักยก</h2>
+          <a href="/changeratekai.html">
+            <li> • <span style="margin-left: 0.5rem;">จัดการอัตราเดิมพัน</span> </li>
+          </a>
+
+        </ul>
+
+      </li>
+      <li class="dropdown accordion-header">
+
+        <div class="accordion-header-title">
+          <div class="accordion-header-content">
+
+            <span class="icon">🐓</span>
+            <span class="text">รายการเดิมพัน</span>
+          </div>
+          <div class="accordion-item" id="roundKai">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content">
+              <a href="/roundkai.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายการเดิมพัน</span></a>
+            </div>
+          </div>
+        </div>
+        <ul class="dropdown-menu">
+          <h2>รายการเดิมพัน</h2>
+          <a href="/roundkai.html">
+            <li>• <span style="margin-left: 0.5rem;">รายการเดิมพัน</span></li>
+          </a>
+        </ul>
+      </li>
+      <!-- <li class="dropdown">
+      <span class="icon">📜</span>
+      <span class="text">รายการเดิมพัน</span>
+      <ul class="dropdown-menu">
+        <li>Option 4</li>
+        <li>Option 5</li>
+        <li>Option 6</li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <span class="icon">👤</span>
+      <span class="text">รายงานสมาชิก</span>
+      <ul class="dropdown-menu">
+        <li>Option 4</li>
+        <li>Option 5</li>
+        <li>Option 6</li>
+      </ul>
+    </li> -->
+      <li class="dropdown accordion-header">
+
+        <div class="accordion-header-title">
+          <div class="accordion-header-content">
+
+            <span class="icon">📊</span>
+            <span class="text">รายงานสมาชิก</span>
+          </div>
+          <div class="accordion-item" id="listUser">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content">
+              <a href="/listuser.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายชื่อลูกค้า</span></a>
+              <a href="/listuserdeposit.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายงานการเติมเงิน</span></a>
+              <a href="/listuserwithdraw.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายงานการถอนเงิน</span></a>
+            </div>
+          </div>
+        </div>
+        <ul class="dropdown-menu">
+          <h2>รายงานสมาชิก</h2>
+          <a href="/listuser.html">
+            <li>• <span style="margin-left: 0.5rem;">รายชื่อลูกค้า</span></li>
+          </a>
+          <a href="/listuserdeposit.html">
+            <li>• <span style="margin-left: 0.5rem;">รายงานการเติมเงิน</span></li>
+          </a>
+          <a href="/listuserwithdraw.html">
+            <li>• <span style="margin-left: 0.5rem;">รายงานการถอนเงิน</span></li>
+          </a>
+        </ul>
+      </li>
+      <li class="dropdown accordion-header">
+
+        <div class="accordion-header-title">
+          <div class="accordion-header-content">
+
+            <span class="icon">💰</span>
+            <span class="text">กำไรสุทธิ</span>
+          </div>
+          <div class="accordion-item" id="netProfit">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content">
+              <a href="/netprofit.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">สรุปกำไร</span></a>
+            </div>
+          </div>
+        </div>
+        <ul class="dropdown-menu">
+          <h2>กำไรสุทธิ</h2>
+          <a href="/netprofit.html">
+            <li>• <span style="margin-left: 0.5rem;">สรุปกำไร</span></li>
+          </a>
+        </ul>
+      </li>
+      <li class="dropdown accordion-header">
+
+        <div class="accordion-header-title">
+          <div class="accordion-header-content">
+            <span class="icon">📜</span>
+            <span class="text">ข้อมูลการเดิมพัน</span>
+          </div>
+          <div class="accordion-item" id="reportBet">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content">
+              <a href="/reportbet.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">ข้อมูลการเดิมพัน</span></a>
+            </div>
+          </div>
+        </div>
+        <ul class="dropdown-menu">
+          <h2>ข้อมูลการเดิมพัน</h2>
+          <a href="/reportbet.html">
+            <li>• <span style="margin-left: 0.5rem;">ข้อมูลการเดิมพัน</span></li>
+          </a>
+
+        </ul>
+      </li>
+    </ul>
+
+  </aside>
+
+  <!-- Sidebar Mobile -->
+  <aside class="sidebar-mobile" id="sidebar-mobile">
+    <ul>
+      <li class="dropdown ">
+        <!-- <div class="icon">😊</div> -->
+        <div class="profile-icon" onclick="changeIconColor()">
+          <img src="" alt="Profile" class="profile-pic" /> <!-- ไอคอนผู้ใช้ -->
+        </div>
+        <div class="text">
+          <p style="margin: 0;" id="username-sidebar-admin">TG-kaix361</p>
+          <span style="margin: 0;">
+            User</span>
+        </div>
+
+      </li>
+      <p id="welcome">Welcome</p>
+      <li class="dropdown accordion-header-mobile">
+        <div class="accordion-header-mobile-title">
+          <div class="accordion-header-mobile-content">
+
+            <span class="icon">⚙️</span>
+            <span class="text">ไก่ชน/มวยพักยก</span>
+          </div>
+          <div class="accordion-mobile-item" id="changeKai">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content-mobile">
+              <a href="/changeratekai.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">จัดการอัตราเดิมพัน</span></a>
+            </div>
+          </div>
+        </div>
+
+      </li>
+      <li class="dropdown accordion-header-mobile">
+
+        <div class="accordion-header-mobile-title">
+          <div class="accordion-header-mobile-content">
+
+            <span class="icon">🐓</span>
+            <span class="text">รายการเดิมพัน</span>
+          </div>
+          <div class="accordion-mobile-item" id="roundKai">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content-mobile">
+              <a href="/roundkai.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายการเดิมพัน</span></a>
+            </div>
+          </div>
+        </div>
+
+      </li>
+      <!-- <li class="dropdown">
+      <span class="icon">📜</span>
+      <span class="text">รายการเดิมพัน</span>
+      <ul class="dropdown-menu">
+        <li>Option 4</li>
+        <li>Option 5</li>
+        <li>Option 6</li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <span class="icon">👤</span>
+      <span class="text">รายงานสมาชิก</span>
+      <ul class="dropdown-menu">
+        <li>Option 4</li>
+        <li>Option 5</li>
+        <li>Option 6</li>
+      </ul>
+    </li> -->
+      <li class="dropdown accordion-header-mobile">
+
+        <div class="accordion-header-mobile-title">
+          <div class="accordion-header-mobile-content">
+
+            <span class="icon">📊</span>
+            <span class="text">รายงานสมาชิก</span>
+          </div>
+          <div class="accordion-mobile-item" id="listUser">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content-mobile">
+              <a href="/listuser.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายชื่อลูกค้า</span></a>
+              <a href="/listuserdeposit.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายงานการเติมเงิน</span></a>
+              <a href="/listuserwithdraw.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">รายงานการถอนเงิน</span></a>
+            </div>
+          </div>
+        </div>
+
+      </li>
+      <li class="dropdown accordion-header-mobile">
+
+        <div class="accordion-header-mobile-title">
+          <div class="accordion-header-mobile-content">
+
+            <span class="icon">💰</span>
+            <span class="text">กำไรสุทธิ</span>
+          </div>
+          <div class="accordion-mobile-item" id="netProfit">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content-mobile">
+              <a href="/netprofit.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">สรุปกำไร</span></a>
+            </div>
+          </div>
+        </div>
+
+      </li>
+      <li class="dropdown accordion-header-mobile">
+
+        <div class="accordion-header-mobile-title">
+          <div class="accordion-header-mobile-content">
+            <span class="icon">📜</span>
+            <span class="text">ข้อมูลการเดิมพัน</span>
+          </div>
+          <div class="accordion-mobile-item" id="reportBet">
+            <!-- <button class="">Section 1</button> -->
+            <div class="accordion-content-mobile">
+              <a href="/reportbet.html" style=" font-size: 16px;">• <span
+                  style="margin-left: 0.5rem;">ข้อมูลการเดิมพัน</span></a>
+            </div>
+          </div>
+        </div>
+
+      </li>
+    </ul>
+
+  </aside>
+  <div class="main-content">
+    <div class="title-page">
+      <h2 id="title"></h2>
+
+      <!-- <p><a href>รอบการเดิมพัน </a>/ จัดการรอบการเดิมพัน
+        </p> -->
+      <p><a href>สรุปการเดิมพัน </a>/ รายการสรุปการเดิมพัน
+      </p>
+    </div>
+    <div class="card">
+      <div id="table-container"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="script.js"></script>
+  <script>
+    let domain = "https://cus2.witheeit.xyz";
+    let round = 0;
+    const headers = ['ชื่อ','ไก่', 'จำนวนเงิน'];
+    const data = []; // No data to show
+
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+        await is_login()
+        getUser(domain)
+
+      } else {
+        const profile = document.getElementsByClassName("profile-pic");
+        const username = document.getElementsByClassName("username-admin");
+        const usernameSidebarAdmin = document.getElementById("username-sidebar-admin");
+
+        const usernameAdmin = localStorage.getItem('username');
+        const profilePic = localStorage.getItem('profilePic');
+
+        profile[0].src = profilePic;
+        profile[1].src = profilePic;
+        username[0].textContent = usernameAdmin;
+        usernameSidebarAdmin.textContent = usernameAdmin;
+
+      }
+      // const loadingElement = document.getElementById('loading');
+      // const dataContainer = document.getElementById('data-container');
+      round = new URLSearchParams(window.location.search).get('round');
+      sub_round = new URLSearchParams(window.location.search).get('sub_round');
+
+      const title = document.getElementById('title');
+      if (title && round) {
+
+
+        title.textContent = `สรุปการเดิมพัน คู่ที่ ${round}`;
+      }
+
+
+
+      getData()
+
+    });
+
+
+
+    const getData = async () => {
+      try {
+        // เรียก API
+        // const response = await axios.get(`${domain}/get_conclude_bet?round=${round}&page=${page}`);
+        const response = await axios.get(`${domain}/get_sub_round_play?round=${round}&sub_round=${sub_round}`);
+        // loadingElement.style.display = 'none'; // ซ่อนข้อความ "Loading"
+        // แสดงข้อมูลใน Card
+        const data = response.data.data;
+        createTable('table-container', headers, data);
+
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+
+      }
+    }
+
+
+    function createTable(containerId, headers, data) {
+      const container = document.getElementById(containerId);
+
+      // const card = document.getElementsByClassName('card')[0];
+
+
+
+      // ล้างข้อมูลเก่าใน container
+      container.innerHTML = '';
+
+      // if (card) {
+      //   card.style.backgroundColor = '#ffffff';
+      //   card.style.border = '1px solid #f0f0f0';
+      // }
+
+      // Create table element
+      const table = document.createElement('table');
+
+      // Create table header
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      // Create table body
+      const tbody = document.createElement('tbody');
+      if (data.length === 0) {
+        const noDataRow = document.createElement('tr');
+        const noDataCell = document.createElement('td');
+        noDataCell.colSpan = headers.length;
+        noDataCell.textContent = 'ไม่มีข้อมูล';
+        noDataCell.style.textAlign = 'center';
+        noDataRow.appendChild(noDataCell);
+        tbody.appendChild(noDataRow);
+      } else {
+        // data.forEach(item => {
+        //     const tr = document.createElement('tr');
+
+        //     // Add data cells
+        //     const cells = [item.round, item.chicken, item.profit];
+        //     cells.forEach(cellData => {
+        //         const td = document.createElement('td');
+        //         td.textContent = cellData;
+        //         tr.appendChild(td);
+        //     });
+
+        // Add edit button
+        // const editTd = document.createElement('td');
+        // const editBtn = document.createElement('button');
+        // editBtn.textContent = 'แก้ไข';
+        // editBtn.className = 'edit-btn';
+        // editBtn.onclick = () => alert(`Editing round ${item.round}`);
+        // editTd.appendChild(editBtn);
+        // tr.appendChild(editTd);
+
+        // tbody.appendChild(tr);
+
+        // });
+        data.forEach(item => {
+          const tr = document.createElement('tr');
+
+
+          // ราคา
+          const username = document.createElement('td');
+          username.textContent = item.username;
+          tr.appendChild(username);
+
+          // ไก่
+          const kai = document.createElement('td');
+          kai.textContent = item.chicken;
+          tr.appendChild(kai);
+
+          // จำนวนเงิน
+          const amount_play = document.createElement('td');
+          amount_play.textContent = formatCardData(item.amount_play) || '-';
+          tr.appendChild(amount_play);
+
+
+          tbody.appendChild(tr);
+        });
+
+
+
+
+      }
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+
+
+
+    function formatCardData(value) {
+      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    const is_login = async () => {
+
+      try {
+        // ดึง token จาก localStorage
+        const token = localStorage.getItem('token');
+
+        // ตรวจสอบว่า token มีค่า
+        if (!token) {
+
+          window.location.href = '/login.html';
+          return;
+        }
+
+
+        // เรียก API พร้อมใส่ Bearer Token ใน header
+        const response = await axios.get(`${domain}/is_login`, {
+          headers: {
+            Authorization: token, // ใส่ Authorization Header
+          },
+        });
+
+        // ตรวจสอบสถานะจาก response
+        if (response.data.status === 200) {
+          localStorage.setItem('token', response.data.data.token); // เก็บ token ใหม่ถ้ามีการอัปเดต
+        }
+      } catch (error) {
+        window.location.href = '/login.html'; // ถ้าเกิด error ให้ redirect ไปหน้า Login
+      }
+    };
+
+
+
+  </script>
+</body>
+
+</html>

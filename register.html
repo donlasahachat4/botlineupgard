@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สมัครสมาชิก</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0 1rem;
+    }
+
+    .container {
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    input,
+    select {
+      width: -webkit-fill-available;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #06C755;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #05A648;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>สมัครสมาชิก</h2>
+    <form id="registerForm">
+      <label>เลือกบัญชีธนาคาร</label>
+      <select id="bank">
+        <option value="KBANK">กสิกรไทย</option>
+        <option value="SCB">ไทยพาณิชย์</option>
+        <option value="KTB">กรุงไทย</option>
+        <option value="BAY">กรุงศรีอยุธยา</option>
+        <option value="GSB">ออมสิน</option>
+        <option value="UOB">ยูโอบี</option>
+        <option value="BBL">กรุงเทพ</option>
+        <option value="CITI">ซิตี้แบ้งค์</option>
+        <option value="LNH">แลนด์ แอนด์ เฮ้าส์</option>
+        <option value="BAAC">ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร</option>
+        <option value="OSK">อาคารสงเคราะห์</option>
+        <option value="KNK">เกียรตินาคิน</option>
+        <option value="JPK">เจพีมอร์แกน เชส</option>
+        <option value="CIMB">ซีไอเอ็มบี ไทย </option>
+        <option value="DOIB">ดอยซ์แบงค์</option>
+        <option value="TISGO">ทิสโก้</option>
+        <option value="TCREDIT">ไทยเครดิต เพื่อรายย่อย</option>
+        <option value="BNP">ธนาคารบีเอ็นพี พารีบาส์</option>
+        <option value="MSU">มิซูโฮ คอร์ปอเรต</option>
+        <option value="MEGA">เมกะ สากลพาณิชย์</option>
+        <option value="SNT">สแตนดาร์ดชาร์เตอร์ด</option>
+        <option value="CN">ธนาคารแห่งประเทศจีน</option>
+        <option value="USA">แห่งอเมริกาฯ</option>
+        <option value="ASL">ธนาคารอิสลามแห่งประเทศไทย</option>
+        <option value="IZBS">ไอซีบีซี (ไทย)</option>
+        <option value="TTB">ธนาคารทหารไทยธนชาต</option>
+        <option value="SCBT">ธนาคารแสตนดาร์ดชาร์เตอร์</option>
+        <option value="TISCO">ธนาคารทิสโก้</option>
+        <option value="ISBT">ธนาคารอิสลาม</option>
+        <option value="HSBC">ธนาคารเอซเอสบีซี</option>
+        <option value="MHCB">ธนาคารมิซูโฮ</option>
+        <option value="ICBC">ธนาคารไอซีบีซี</option>
+        <option value="DB">ธนาคารดอยซ์แบงก์เอจี</option>
+        <option value="ANZ">ธนาคารเอเอ็นแซด</option>
+        <option value="IOBA">ธนาคาร อินเดียนโอเวอร์ซีส์</option>
+        <option value="TRUEWALLET">TRUEWALLET</option>
+        <option value="PEER2PAY">PEER2PAY</option>
+      </select>
+
+      <label>หมายเลขบัญชี</label>
+      <input type="text" id="accountNumber" placeholder="หมายเลขบัญชี" required>
+
+      <label>เบอร์โทรศัพท์</label>
+      <input type="text" id="phone" placeholder="เบอร์โทรศัพท์" required>
+
+      <label>ชื่อ-นามสกุลบัญชีธนาคาร</label>
+      <input type="text" id="fullname" placeholder="ชื่อ-นามสกุล" required>
+      
+      <label>LINE-ID</label>
+
+      <input type="text" id="line-id" placeholder="กรอก LINE ID" required>
+
+      <button type="button" class="btn" onclick="validateForm()">สมัครสมาชิก</button>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+  <script>
+
+    let userID = "";
+    let redirect = "";
+    let domain = "https://cus2.witheeit.xyz";
+
+
+    window.onload = function () {
+      const queryString = window.location.search;
+
+      if (queryString) {
+        login();
+      } else {
+        liff
+          .init({
+            liffId: "2006843393-vKZnkK6w",
+          })
+          .then(async () => {
+            if (liff.isLoggedIn()) {
+              liff.getProfile().then(async (profile) => {
+                userID = profile.userId;
+              
+
+                // checkRole();
+                checkUserId()
+              });
+            } else {
+              login();
+            }
+          });
+      }
+    };
+    function login() {
+      liff
+        .init({
+          liffId: "2006843393-vKZnkK6w",
+        })
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          liff.getProfile().then(async (profile) => {
+            userID = profile.userId;
+            // checkRole();
+      
+
+            checkUserId()
+          });
+        });
+    }
+
+
+
+    function validateForm() {
+      let accountNumber = document.getElementById("accountNumber").value;
+      let phone = document.getElementById("phone").value;
+
+      if (!/^[0-9]{10,12}$/.test(accountNumber)) {
+        alert("หมายเลขบัญชีต้องเป็นตัวเลข 10-12 หลัก");
+        return;
+      }
+      if (!/^[0-9]{10}$/.test(phone)) {
+        alert("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก");
+        return;
+      }
+      if
+        (document.getElementById("fullname").value == "" ||
+        document.getElementById("bank").value == "" ||
+        document.getElementById("accountNumber").value == "" ||
+        document.getElementById("phone").value == ""||
+        document.getElementById("line-id").value == "" 
+      ) {
+        alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        return;
+      }
+      // alert("ลงทะเบียนสำเร็จ!");
+      register();
+    }
+
+    async function register() {
+      let bank = document.getElementById("bank").value;
+      let accountNumber = document.getElementById("accountNumber").value;
+      let phone = document.getElementById("phone").value;
+      let fullname = document.getElementById("fullname").value
+      let lineID = document.getElementById("line-id").value
+      const payload = {
+        bank_name: bank,
+        account_number: accountNumber,
+        phone_number: phone,
+        full_name: fullname,
+        user_id: userID,
+        line_id: lineID
+      }
+
+
+      try {
+        // เรียก API
+        const response = await axios.post(`${domain}/post_register`, payload);
+        // loadingElement.style.display = 'none'; // ซ่อนข้อความ "Loading"
+        // แสดงข้อมูลใน Card
+
+        if (response.data.link !== "") {
+          bank = ""
+          accountNumber = ""
+          phone = ""
+          fullname = ""
+          lineID = ""
+          window.location.href = "/kai/verifyslip.html"; // Redirect ไปหน้า Dashboard
+        }
+
+
+
+
+
+      } catch (error) {
+        bank = ""
+        accountNumber = ""
+        phone = ""
+        fullname = ""
+        lineID = ""
+        alert("server มีปัญหากรุณาลองใหม่อีกครั้ง")
+
+      }
+    }
+
+    async function checkUserId() {
+
+
+      try {
+        // เรียก API
+        const response = await axios.get(`${domain}/check_user_id?user_id=${userID}`);
+
+        if (response.data.message === "success") {
+          
+          window.location.href = "/kai/verifyslip.html"; // Redirect ไปหน้า Dashboard
+        }else{
+          document.body.style.display = "flex";
+
+        }
+
+
+
+
+
+      } catch (error) {
+
+        alert("server มีปัญหากรุณาลองใหม่อีกครั้ง")
+
+      }
+    }
+
+
+  </script>
+</body>
+
+</html>

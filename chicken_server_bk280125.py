@@ -20,17 +20,18 @@ import math
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'aa123456'
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'change-me')
 jwt = JWTManager(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 #domain = "https://cus2.witheeit.xyz"
+#domain = "https://cus2.witheeit.xyz"
 domain = "https://cus2.witheeit.xyz/"
 
-Channel_access_token = "DaHrE1b3fiWsogpF9gyUHQ8Ih2P0Q6lmOnunWsivZEunOllLxwEI2DAxNkYeZ+YtnXnDp85p4kvjkNyaL9MFaMprirLvmvEUGgbNjL/1XC1PsXs+R2SQ82C2nRTFMNd0YY152SPVXoW68AlndSxcbAdB04t89/1O/w1cDnyilFU="
+Channel_access_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN', '')
 
-line_notify_token = 'WFJAUkO7gFZMQUt6k3qpMKbdhNubVHbD7K7hoo81rmd'
+line_notify_token = os.environ.get('LINE_NOTIFY_TOKEN', '')
 # line_notify_token = 'BxIZDd6bnTXnNeJm1BjeH9IOKTYqAhcJgtPYooUZDlL'
 # possibilities = ['p1','p2','p3','p4']
 

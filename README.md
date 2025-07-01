@@ -18,6 +18,10 @@ front‑end and MySQL database.
    - `ADMIN_TOKEN` (token for admin routes)
    - `BET_ALERT` (threshold for large bet alert)
    - `LOGO_TEXT` (displayed logo text on login pages)
+  - `LINE_NOTIFY_TOKEN` (token for sending Line Notify messages)
+  - `JWT_SECRET_KEY` (secret key for Flask JWT sessions)
+  - `MIN_DEPOSIT` (minimum deposit amount in Baht)
+  - `EASY_TOKEN` and `SLIP2GO_TOKEN` (tokens for slip verification services)
 3. Install requirements (includes Flask-SQLAlchemy):
 
 ```bash

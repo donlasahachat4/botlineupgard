@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ผูกบัญชีธนาคาร</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+  <h1 class="mb-3 text-center">{{ logo_text }}</h1>
+  <h2 class="h5 mb-3 text-center">ผูกบัญชีธนาคาร</h2>
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+  <form method="post" class="mx-auto" style="max-width: 380px;">
+    <div class="mb-2">
+      <label class="form-label" for="bank_name">ธนาคาร</label>
+      <select class="form-select" name="bank_name" id="bank_name" required>
+        <option value="">เลือกธนาคาร</option>
+        <option value="กรุงเทพ">กรุงเทพ</option>
+        <option value="กสิกรไทย">กสิกรไทย</option>
+        <option value="กรุงไทย">กรุงไทย</option>
+        <option value="ไทยพาณิชย์">ไทยพาณิชย์</option>
+        <option value="กรุงศรี">กรุงศรี</option>
+        <option value="ทหารไทยธนชาต">ทหารไทยธนชาต</option>
+        <option value="ออมสิน">ออมสิน</option>
+      </select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label" for="account_number">เลขบัญชี</label>
+      <input type="text" class="form-control" name="account_number" id="account_number" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="account_name">ชื่อบัญชี</label>
+      <input type="text" class="form-control" name="account_name" id="account_name" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">บันทึก</button>
+  </form>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

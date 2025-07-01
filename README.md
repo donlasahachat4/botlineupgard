@@ -82,3 +82,24 @@ the PromptPay QR flow. When a match occurs the wallet balance is credited and a
 Administrators configure tokens on the **Integrations** page (`/admin/integrations`).
 Set webhook URLs for each channel there. Incoming messages are logged under
 `/admin/integration-logs` and matched automatically when possible.
+
+### Performance and Security Considerations
+
+#### Handling High Concurrency
+- Use Flask-SocketIO with `eventlet` or `gevent`. Scale with multiple worker processes if needed.
+- For very high load, coordinate Socket.IO events through Redis or RabbitMQ.
+- Offload live video streaming to RTMP or HLS platforms such as YouTube and embed the stream using `hls.js` or a YouTube iframe.
+
+#### API Rate Limits
+- The LINE Messaging API has push quotas. Send push messages only for important round events (odds, closing, results).
+- Use the reply token for direct responses to user messages to conserve push quota.
+- Batch or throttle notifications and handle HTTP `429` responses gracefully.
+
+#### Security
+- Never expose secret keys or database credentials in the front-end; load them from environment variables.
+- Serve the application only via HTTPS.
+- Enforce strong admin passwords and use JWT for all sessions.
+- Validate inputs server-side to ensure bets are within the user balance and maximum allowed amounts.
+- Use parameterized SQL or an ORM such as SQLAlchemy.
+- Log and monitor all admin actions and suspicious behavior. Rate-limit bet submissions and audit critical actions.
+

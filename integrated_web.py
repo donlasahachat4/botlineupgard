@@ -54,6 +54,13 @@ from flask_login import (
     login_required,
     current_user,
 )
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    verify_jwt_in_request,
+    get_jwt,
+)
+from functools import wraps
 import bcrypt
 import qrcode
 from werkzeug.utils import secure_filename
@@ -77,6 +84,7 @@ DB_NAME = os.getenv("MYSQL_DB")
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 STREAM_URL = os.getenv("STREAM_URL", "")
 SECRET_KEY = os.getenv("SECRET_KEY", "changeme")
+JWT_SECRET = os.getenv("JWT_SECRET_KEY", "supersecret")
 UPLOAD_FOLDER = os.path.join("static", "uploads")
 BET_ALERT = float(os.getenv("BET_ALERT", "10000"))
 PROMPTPAY_ID = os.getenv("PROMPTPAY_ID")
@@ -90,8 +98,11 @@ app.config["SQLALCHEMY_DATABASE_URI"] = (
     f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}" if DB_USER else ""
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["JWT_SECRET_KEY"] = JWT_SECRET
 
 socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
+
+jwt = JWTManager(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
@@ -203,12 +214,22 @@ def log_deposit(user_id: int, amount: float, msg: str):
 
 
 def admin_required(func):
-    """Basic token auth decorator for admin endpoints."""
+    """Admin auth using static token or JWT."""
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        if ADMIN_TOKEN and request.headers.get("Authorization") != f"Bearer {ADMIN_TOKEN}":
+        auth_header = request.headers.get("Authorization", "")
+        if ADMIN_TOKEN and auth_header == f"Bearer {ADMIN_TOKEN}":
+            return func(*args, **kwargs)
+        try:
+            verify_jwt_in_request()
+        except Exception:  # pragma: no cover - invalid token
             return abort(401)
+        claims = get_jwt()
+        if claims.get("role") != "admin":
+            return abort(403)
         return func(*args, **kwargs)
+
 
     wrapper.__name__ = func.__name__
     return wrapper
@@ -224,6 +245,21 @@ def load_user(user_id: str) -> Optional[User]:
 # ---------------------------------------------------------------------------
 user_bp = Blueprint("user_api", __name__, url_prefix="/api")
 admin_bp = Blueprint("admin_api", __name__, url_prefix="/api/admin")
+
+
+@admin_bp.route("/login", methods=["POST"])
+def admin_login_api():
+    """Issue JWT token for admin users."""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify({"error": "missing"}), 400
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.is_admin or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        return jsonify({"error": "unauthorized"}), 401
+    token = create_access_token(identity=user.id, additional_claims={"role": "admin"})
+    return jsonify({"access_token": token})
 
 
 @user_bp.route("/bet", methods=["POST"])

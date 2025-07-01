@@ -22,6 +22,11 @@ front‑end and MySQL database.
   - `JWT_SECRET_KEY` (secret key for Flask JWT sessions)
   - `MIN_DEPOSIT` (minimum deposit amount in Baht)
   - `EASY_TOKEN` and `SLIP2GO_TOKEN` (tokens for slip verification services)
+
+After creating an admin user in the database, obtain a JWT token by POSTing
+`{"username": "admin", "password": "..."}` to `/api/admin/login`. Include this
+token in the `Authorization` header as `Bearer <token>` when calling other admin
+API endpoints.
 3. Install requirements (includes Flask-SQLAlchemy):
 
 ```bash

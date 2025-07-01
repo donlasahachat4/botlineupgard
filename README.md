@@ -12,6 +12,8 @@ front‑end and MySQL database.
 2. Set the following environment variables before running the server:
    - `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASS`, `MYSQL_DB`
    - `LINE_ACCESS_TOKEN` and `LINE_GROUP_ID`
+   - `LINE_CLIENT_ID`, `LINE_CLIENT_SECRET`, `LINE_REDIRECT_URI`
+   - `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET`
    - `STREAM_URL` (HLS URL for the live video, optional)
    - `ADMIN_TOKEN` (token for admin routes)
    - `BET_ALERT` (threshold for large bet alert)
@@ -64,3 +66,15 @@ Ensure MySQL and LINE credentials are set in the environment and configure HTTPS
 - Admin panel requires `ADMIN_TOKEN`
 - All wallet and bet actions logged and append-only
 - LINE/Web accounts share a single wallet when linked
+
+### Deposit webhook integration
+
+The endpoint `/webhook/deposit` accepts POST requests from SMS forwarders or
+other services. Include a `message` field with the notification text. The server
+records each notification and tries to match it to a pending deposit created via
+the PromptPay QR flow. When a match occurs the wallet balance is credited and a
+`deposit_matched` Socket.IO event is emitted.
+
+Administrators configure tokens on the **Integrations** page (`/admin/integrations`).
+Set webhook URLs for each channel there. Incoming messages are logged under
+`/admin/integration-logs` and matched automatically when possible.

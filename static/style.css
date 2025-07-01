@@ -1,0 +1,40 @@
+body {
+  font-family: 'Sarabun', Arial, sans-serif;
+  background: #f7f7fb;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+.form-container, .chat-container {
+  max-width: 400px;
+  margin: 40px auto;
+  background: #fff;
+  padding: 24px 32px 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px #0002;
+}
+h2, h3 {
+  color: #2d3c58;
+  margin-top: 0;
+}
+input, select, button {
+  font-size: 1rem;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid #b6b9c6;
+}
+button {
+  background: #4069e6;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: 0.1s;
+}
+button:hover { background: #254fc9; }
+.chat-container { margin-top: 32px; }
+#chat-box { background: #f2f4fb; border-radius: 6px; padding: 8px; }
+.logo { font-family: 'Prompt', sans-serif; font-size: 2.5rem; color: #254fc9; text-align:center; margin-bottom: 16px;}

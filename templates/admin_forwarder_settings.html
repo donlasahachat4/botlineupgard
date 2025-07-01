@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ตั้งค่าระบบรับแจ้งเตือนยอดฝาก</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+      .setting-block {display:none;}
+      .active {display:block;}
+    </style>
+</head>
+<body>
+  <h2>ตั้งค่าระบบรับแจ้งเตือนยอดฝากอัตโนมัติ</h2>
+  <form action="/admin/setup-forwarder" method="POST">
+    <label>เลือกช่องทาง:</label>
+    <select name="method" onchange="showSetting(this.value)">
+      <option value="">- เลือกช่องทาง -</option>
+      <option value="sms">SMS Forwarder</option>
+      <option value="ifttt">IFTTT Webhook</option>
+      <option value="pushbullet">Pushbullet</option>
+      <option value="lineoa">LINE OA</option>
+    </select>
+    <div id="sms" class="setting-block">
+      <h4>SMS Forwarder (Android)</h4>
+      <ol>
+        <li>โหลด <a href="https://play.google.com/store/apps/details?id=xyz.kumaraswamy.smsforwarder" target="_blank">SMS Forwarder (Android)</a></li>
+        <li>คัดลอก Webhook URL ไปใส่ในแอป: <input type="text" readonly value="https://yourdomain.com/api/sms-webhook" size="45"></li>
+        <li>ตั้งค่า Forward SMS เฉพาะเบอร์ธนาคารของคุณ</li>
+      </ol>
+      <p>หมายเลขโทรศัพท์หลัก (ใช้ตรวจจับ): <input type="text" name="sms_phone" placeholder="08xxxxxx"></p>
+    </div>
+    <div id="ifttt" class="setting-block">
+      <h4>IFTTT Webhook</h4>
+      <ol>
+        <li>เข้า <a href="https://ifttt.com/maker_webhooks" target="_blank">IFTTT Webhooks</a> แล้วคัดลอก Key</li>
+        <li>ใส่ Webhook URL: <input type="text" readonly value="https://yourdomain.com/api/ifttt-webhook" size="45"></li>
+        <li>กรอก IFTTT Key: <input type="text" name="ifttt_key" placeholder="IFTTT Key"></li>
+      </ol>
+    </div>
+    <div id="pushbullet" class="setting-block">
+      <h4>Pushbullet</h4>
+      <ol>
+        <li>สมัคร <a href="https://www.pushbullet.com/" target="_blank">Pushbullet</a> และคัดลอก Access Token</li>
+        <li>Webhook URL: <input type="text" readonly value="https://yourdomain.com/api/pushbullet-webhook" size="45"></li>
+        <li>Access Token: <input type="text" name="push_token" placeholder="Pushbullet Token"></li>
+      </ol>
+    </div>
+    <div id="lineoa" class="setting-block">
+      <h4>LINE OA</h4>
+      <ol>
+        <li>ตั้ง Webhook URL ที่ LINE OA: <input type="text" readonly value="https://yourdomain.com/api/line-webhook" size="45"></li>
+      </ol>
+    </div>
+    <button type="submit">บันทึก / เชื่อมต่อ</button>
+  </form>
+  <script>
+    function showSetting(val) {
+      document.querySelectorAll('.setting-block').forEach(e => e.classList.remove('active'));
+      if(val) document.getElementById(val).classList.add('active');
+    }
+  </script>
+</body>
+</html>

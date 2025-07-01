@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ดูถ่ายทอดสด</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="//cdn.socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>🔴 ถ่ายทอดสดแมตช์</h2>
+  <video id="hls-video" controls autoplay width="100%" style="max-width:720px;">
+    <source src="{{ stream_url }}" type="application/x-mpegURL">
+    เบราว์เซอร์ของคุณไม่รองรับการดูวิดีโอแบบ HLS
+  </video>
+  <p style="text-align:right;">
+    <b>ยอดเงิน:</b> <span id="userBalance">{{ wallet.balance }}</span> บาท
+  </p>
+  <div>
+    <button onclick="bet('แดง', 100)">แทงแดง 100</button>
+    <button onclick="bet('น้ำเงิน', 100)">แทงน้ำเงิน 100</button>
+  </div>
+  <div id="betResult"></div>
+  <div class="chat-container">
+    <h3>แชทรวมระหว่างสตรีม</h3>
+    <div id="chat-box" style="border:1px solid #ccc; height:200px; overflow:auto; margin-bottom:5px;"></div>
+    <input type="text" id="chat-input" placeholder="พิมพ์แชท..." style="width:70%">
+    <button onclick="sendChat()">ส่ง</button>
+  </div>
+
+  <script>
+    const socket = io();
+    function bet(side, amount){
+      socket.emit('bet', {side: side, amount: amount});
+    }
+    socket.on('bet_placed', function(data){
+      document.getElementById('betResult').innerText = 'เดิมพันสำเร็จ';
+      document.getElementById('userBalance').innerText = data.balance.toFixed(2);
+    });
+    socket.on('bet_error', function(data){
+      alert(data.msg);
+    });
+    socket.on('balance_update', function(data){
+      document.getElementById('userBalance').innerText = data.balance.toFixed(2);
+    });
+
+    function sendChat(){
+      const msg = document.getElementById('chat-input').value.trim();
+      if(msg){
+        socket.emit('chat', {msg: msg});
+        document.getElementById('chat-input').value = '';
+      }
+    }
+    socket.on('chat_broadcast', function(data){
+      const chatbox = document.getElementById('chat-box');
+      chatbox.innerHTML += `<b>${data.user}</b>: ${data.msg}<br>`;
+      chatbox.scrollTop = chatbox.scrollHeight;
+    });
+  </script>
+</body>
+</html>

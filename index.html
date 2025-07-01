@@ -183,3 +183,31 @@ button:hover {
 }
 
 </style>
+<script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  function placeBet() {
+    const matchId = document.getElementById("match_id").value;
+    const side = document.getElementById("selection").value;
+    const amount = document.getElementById("amount").value;
+
+    socket.emit("bet", {
+      match_id: matchId,
+      side: side,
+      amount: amount
+    });
+  }
+
+  socket.on("bet_placed", function(data) {
+    alert("เดิมพันสำเร็จ: " + data.side + " " + data.amount);
+  });
+  socket.on("bet_error", function(data) {
+    alert(data.msg);
+  });
+</script>
+
+<input id="match_id" placeholder="Match ID">
+<input id="selection" placeholder="แดง / น้ำเงิน">
+<input id="amount" placeholder="จำนวนเงิน">
+<button onclick="placeBet()">วางเดิมพัน</button>

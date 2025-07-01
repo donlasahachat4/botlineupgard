@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ฝากเงิน – QR พร้อมเพย์</title>
+</head>
+<body>
+  <h2>ฝากเงินผ่าน QR พร้อมเพย์</h2>
+  {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+  <form method="POST">
+    <label>กรอกจำนวนเงิน (บาท):</label>
+    <input type="number" name="amount" min="1" step="1" required>
+    <button type="submit">สร้าง QR ฝากเงิน</button>
+  </form>
+</body>
+</html>

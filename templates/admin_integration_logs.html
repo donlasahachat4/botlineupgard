@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Integration Logs</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h2>Integration Action Logs</h2>
+  <table border="1">
+    <tr><th>เวลา</th><th>Integration</th><th>Action</th><th>Status</th><th>Detail</th><th>Admin</th></tr>
+    {% for log in logs %}
+    <tr>
+      <td>{{ log.timestamp }}</td>
+      <td>{{ log.integration }}</td>
+      <td>{{ log.action }}</td>
+      <td>{{ log.status }}</td>
+      <td>{{ log.detail }}</td>
+      <td>{{ log.admin }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

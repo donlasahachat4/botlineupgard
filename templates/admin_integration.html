@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Integration Settings</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h2>Integration Settings</h2>
+  <form method="POST">
+    <table border="1">
+      <tr><th>ช่องทาง</th><th>เปิดใช้งาน</th><th>Webhook URL</th><th>Token</th><th>Action</th></tr>
+      {% for i in integrations %}
+      <tr>
+        <td>{{ i.name }}</td>
+        <td><input type="checkbox" name="enable" {% if i.is_enabled %}checked{% endif %}></td>
+        <td><input type="text" name="webhook_url" value="{{ i.webhook_url or '' }}"></td>
+        <td><input type="text" name="token" value="{{ i.token or '' }}"></td>
+        <td>
+          <input type="hidden" name="name" value="{{ i.name }}">
+          <button type="submit">อัปเดต</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </form>
+</body>
+</html>

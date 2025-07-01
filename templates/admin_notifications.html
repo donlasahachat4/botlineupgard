@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Deposit Notifications</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h2>Deposit Notifications</h2>
+  <table border="1">
+    <tr>
+      <th>Channel</th><th>Amount</th><th>Sender</th><th>Raw</th><th>Matched</th>
+    </tr>
+    {% for n in notifications %}
+    <tr>
+      <td>{{ n.channel }}</td>
+      <td>{{ '%.2f'|format(n.amount) }}</td>
+      <td>{{ n.sender or '' }}</td>
+      <td style="max-width:300px;">{{ n.raw_message }}</td>
+      <td>{{ '✔️' if n.matched else '❌' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

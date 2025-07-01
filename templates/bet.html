@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบเดิมพัน</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>วางเดิมพันแมตช์</h2>
+  <form id="bet-form">
+    <select id="side">
+      <option value="แดง">แดง</option>
+      <option value="น้ำเงิน">น้ำเงิน</option>
+    </select>
+    <input type="number" id="amount" placeholder="จำนวนเงิน">
+    <button type="submit">วางเดิมพัน</button>
+  </form>
+
+  <div id="messages"></div>
+
+  <script>
+    const socket = io();
+    document.getElementById('bet-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const amount = document.getElementById('amount').value;
+      const side = document.getElementById('side').value;
+      socket.emit('bet', {
+        match_id: 'M001',
+        amount: amount,
+        side: side
+      });
+    });
+
+    socket.on('bet_result', function(data) {
+      document.getElementById('messages').innerText = data.msg;
+    });
+
+    socket.on('new_bet', function(data) {
+      console.log('New bet placed:', data);
+    });
+  </script>
+</body>
+</html>

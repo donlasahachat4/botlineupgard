@@ -111,6 +111,10 @@ socket.on('wallet_update', b => {
   }
 });
 
+socket.on('deposit_update', d => {
+  alert('เงินเข้า: ' + d.amount + ' บาท');
+});
+
 // User bet form
 if (betForm) {
   betForm.addEventListener('submit', e => {

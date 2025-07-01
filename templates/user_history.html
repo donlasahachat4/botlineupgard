@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ประวัติเดิมพัน & กระเป๋า</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h2>ประวัติการเดิมพัน ({{ current_user.username }})</h2>
+  <table border="1">
+    <tr>
+      <th>วันที่</th><th>ข้าง</th><th>จำนวน</th><th>สถานะ</th>
+    </tr>
+    {% for bet in bets %}
+      <tr>
+        <td>{{ bet.created_at.strftime('%d/%m %H:%M') }}</td>
+        <td>{{ bet.side }}</td>
+        <td>{{ bet.amount }}</td>
+        <td>{{ bet.status }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+
+  <h2>ประวัติกระเป๋าเงิน</h2>
+  <table border="1">
+    <tr>
+      <th>วันที่</th><th>ประเภท</th><th>จำนวน</th><th>คงเหลือหลังรายการ</th><th>หมายเหตุ</th>
+    </tr>
+    {% for log in wallet_logs %}
+      <tr>
+        <td>{{ log.created_at.strftime('%d/%m %H:%M') }}</td>
+        <td>{{ log.action }}</td>
+        <td>{{ log.amount }}</td>
+        <td>{{ log.balance_after }}</td>
+        <td>{{ log.note }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

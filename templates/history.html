@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ประวัติการเดิมพัน</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h2>ประวัติการเดิมพันของคุณ</h2>
+  <table border="1">
+    <tr>
+      <th>เวลา</th>
+      <th>แมตช์</th>
+      <th>เลือก</th>
+      <th>จำนวนเงิน</th>
+    </tr>
+    {% for bet in bets %}
+    <tr>
+      <td>{{ bet.created_at }}</td>
+      <td>{{ bet.match_id }}</td>
+      <td>{{ bet.side }}</td>
+      <td>{{ bet.amount }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <a href="/dashboard">กลับแดชบอร์ด</a>
+</body>
+</html>

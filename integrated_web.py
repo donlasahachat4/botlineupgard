@@ -22,6 +22,7 @@ from flask import (
     abort,
     redirect,
     url_for,
+    session,
 )
 from models import (
     db,
@@ -33,12 +34,19 @@ from models import (
     Withdrawal,
     Stream,
     DepositRequest,
+    BetEntry,
+    LogEntry,
     BetLog,
     WalletLog,
     SystemLog,
     SecurityLog,
+    DepositPending,
+    DepositLog,
+    DepositNotification,
+    AdminIntegrationSetting,
+    DepositWebhookLog,
 )
-from flask_socketio import SocketIO
+from socketio_app import socketio
 from flask_login import (
     LoginManager,
     login_user,
@@ -51,11 +59,11 @@ import qrcode
 from werkzeug.utils import secure_filename
 
 from utils.line_helper import push_message_to_line, reply_message, link_user_account
+from line_helper import get_line_login_url, get_line_profile
 from sms_parser import parse_sms
 from auto_matcher import match_deposit
 from wallet import credit_wallet
 from models import RegisteredBankAccount
-from otp_handler import create_otp, verify_otp
 
 load_dotenv()
 
@@ -83,7 +91,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = (
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio.init_app(app, cors_allowed_origins="*", async_mode="eventlet")
 
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
@@ -162,6 +170,36 @@ def get_wallet(owner_id: str, channel: str = "web") -> Wallet:
         db.session.add(wallet)
         db.session.commit()
     return wallet
+
+# ---------------------------------------------------------------------------
+# Deposit matching helpers
+# ---------------------------------------------------------------------------
+
+def match_deposit_sms(msg: str):
+    """Match SMS text to a pending deposit by amount."""
+    m = re.search(r"([0-9,]+\.[0-9]{2})", msg or "")
+    if m:
+        amount = float(m.group(1).replace(",", ""))
+        dp = DepositPending.query.filter_by(amount=amount, status="pending").first()
+        if dp:
+            dp.status = "matched"
+            db.session.commit()
+            return {"user_id": dp.user_id, "amount": amount}
+    return None
+
+
+def update_wallet(user_id: int, amount: float):
+    wallet = Wallet.query.filter_by(owner_id=str(user_id)).first()
+    if wallet:
+        wallet.balance += amount
+        db.session.commit()
+    return wallet
+
+
+def log_deposit(user_id: int, amount: float, msg: str):
+    log = DepositLog(user_id=user_id, amount=amount, message=msg)
+    db.session.add(log)
+    db.session.commit()
 
 
 def admin_required(func):
@@ -547,6 +585,53 @@ def sms_webhook():
     return jsonify({"matched": matched})
 
 
+@app.route('/api/sms-webhook', methods=['POST'])
+def api_sms_webhook():
+    sms_body = request.form.get('message') or (request.json or {}).get('message')
+    matched = match_deposit_sms(sms_body)
+    if matched:
+        update_wallet(matched['user_id'], matched['amount'])
+        log_deposit(matched['user_id'], matched['amount'], sms_body)
+        socketio.emit('deposit_update', matched, broadcast=True)
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/ifttt-webhook', methods=['POST'])
+def ifttt_webhook():
+    data = request.json or request.form
+    msg = data.get('value1')
+    matched = match_deposit_sms(msg)
+    if matched:
+        update_wallet(matched['user_id'], matched['amount'])
+        log_deposit(matched['user_id'], matched['amount'], msg)
+        socketio.emit('deposit_update', matched, broadcast=True)
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/pushbullet-webhook', methods=['POST'])
+def pushbullet_webhook():
+    data = request.json or request.form
+    body = data.get('push', {}).get('body') if 'push' in data else data.get('body')
+    matched = match_deposit_sms(body)
+    if matched:
+        update_wallet(matched['user_id'], matched['amount'])
+        log_deposit(matched['user_id'], matched['amount'], body)
+        socketio.emit('deposit_update', matched, broadcast=True)
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/line-webhook', methods=['POST'])
+def line_deposit_webhook():
+    data = request.json or {}
+    msg = data.get('events', [{}])[0].get('message', {}).get('text')
+    matched = match_deposit_sms(msg)
+    if matched:
+        update_wallet(matched['user_id'], matched['amount'])
+        log_deposit(matched['user_id'], matched['amount'], msg)
+        socketio.emit('deposit_update', matched, broadcast=True)
+    return jsonify({'status': 'ok'})
+
+
 @admin_bp.route("/stream", methods=["POST"])
 @admin_required
 def update_stream():
@@ -615,16 +700,71 @@ def admin_bets_round(round_id: int):
 @admin_bp.route("/deposit_logs")
 @admin_required
 def admin_deposit_logs():
-    """View PromptPay deposit request history."""
-    reqs = DepositRequest.query.order_by(DepositRequest.id.desc()).all()
-    return render_template("admin_deposit_logs.html", reqs=reqs)
+    """View deposit logs for all users."""
+    logs = DepositLog.query.order_by(DepositLog.created_at.desc()).limit(100).all()
+    return render_template("admin_deposit_logs.html", logs=logs)
+
+
+@admin_bp.route("/deposit_notifications")
+@admin_required
+def admin_deposit_notifications():
+    notifications = DepositNotification.query.order_by(DepositNotification.received_at.desc()).limit(100).all()
+    return render_template("admin_notifications.html", notifications=notifications)
+
+
+@app.route('/admin/deposit/force_match', methods=['POST'])
+@login_required
+def admin_force_match():
+    if not current_user.is_admin:
+        return "Forbidden", 403
+    dep_id = request.form.get('deposit_id')
+    dep = DepositPending.query.get(dep_id)
+    if not dep or dep.status != 'pending':
+        return "Deposit not found or already processed"
+    wallet = Wallet.query.filter_by(owner_id=dep.user_id).first()
+    wallet.balance += dep.amount
+    dep.status = 'force_matched'
+    db.session.add(wallet)
+    db.session.add(dep)
+    db.session.add(DepositLog(user_id=dep.user_id, amount=dep.amount, message='Force matched by admin'))
+    db.session.commit()
+    socketio.emit('deposit_force_matched', {'user_id': dep.user_id, 'amount': dep.amount}, namespace='/admin', broadcast=True)
+    return redirect('/admin/deposit/logs')
+
+
+@app.route('/admin/deposit/mark_fraud', methods=['POST'])
+@login_required
+def admin_mark_fraud():
+    if not current_user.is_admin:
+        return "Forbidden", 403
+    dep_id = request.form.get('deposit_id')
+    dep = DepositPending.query.get(dep_id)
+    if not dep or dep.status != 'pending':
+        return "Deposit not found or already processed"
+    dep.status = 'fraud'
+    db.session.add(dep)
+    db.session.add(DepositLog(user_id=dep.user_id, amount=dep.amount, message='Marked as fraud'))
+    db.session.commit()
+    socketio.emit('deposit_marked_fraud', {'user_id': dep.user_id, 'amount': dep.amount}, namespace='/admin', broadcast=True)
+    return redirect('/admin/deposit/logs')
+
+
+@app.route('/admin/setup-forwarder', methods=['GET', 'POST'])
+def admin_setup_forwarder():
+    if request.method == 'POST':
+        session['forwarder_method'] = request.form.get('method')
+        session['sms_phone'] = request.form.get('sms_phone')
+        session['ifttt_key'] = request.form.get('ifttt_key')
+        session['push_token'] = request.form.get('push_token')
+        return "บันทึกเรียบร้อย"
+    return render_template('admin_forwarder_settings.html')
 
 
 # ---------------------------------------------------------------------------
 # LINE webhook
 # ---------------------------------------------------------------------------
 @app.route("/callback", methods=["POST"])
-def line_callback():
+def line_webhook():
     body = request.get_json(force=True)
     events = body.get("events", [])
     for ev in events:
@@ -690,7 +830,30 @@ def line_callback():
             total = sum(float(b.amount) for b in bets)
             link_msg = f"\nเปิดเว็บ: /dashboard" if user else "\nพิมพ์ link <token> ในเว็บเพื่อเชื่อม"  # placeholder
             reply_message(reply_token, f"ยอดคงเหลือ {wallet.balance}\nยอดเดิมพัน {total}{link_msg}")
+# Add a simple OK response for LINE Messaging API webhook
     return "OK"
+
+
+# ---------------------------------------------------------------------------
+# LINE Login routes
+# ---------------------------------------------------------------------------
+
+@app.route("/line-login")
+def line_login():
+    return redirect(get_line_login_url())
+
+
+@app.route("/callback", methods=["GET"])
+def line_callback():
+    code = request.args.get("code")
+    profile = get_line_profile(code) if code else None
+    if profile:
+        user = User.query.filter_by(line_user_id=profile["line_user_id"]).first()
+        if user:
+            login_user(user)
+            return redirect("/dashboard")
+        return "ยังไม่มีบัญชีที่ผูกกับ LINE นี้"
+    return "เกิดข้อผิดพลาดในการเข้าสู่ระบบ"
 
 
 # ---------------------------------------------------------------------------
@@ -791,6 +954,36 @@ def wallet_history_page():
     return render_template("wallet_history.html", logs=logs)
 
 
+@app.route('/bet')
+@login_required
+def bet_page():
+    return render_template('bet.html')
+
+
+@app.route('/history')
+@login_required
+def user_history():
+    """Show bet and wallet logs for the current user."""
+    bets = (
+        Bet.query.filter_by(user_id=current_user.id)
+        .order_by(Bet.created_at.desc())
+        .all()
+    )
+    wallet_logs = (
+        WalletLog.query.filter_by(user_id=current_user.id)
+        .order_by(WalletLog.created_at.desc())
+        .all()
+    )
+    return render_template('user_history.html', bets=bets, wallet_logs=wallet_logs)
+
+
+@app.route('/stream')
+@login_required
+def stream_page():
+    wallet = get_wallet(str(current_user.id))
+    return render_template('stream.html', stream_url=current_stream_url(), wallet=wallet)
+
+
 @app.route("/bank_setup", methods=["GET", "POST"])
 @login_required
 def bank_setup():
@@ -816,23 +1009,6 @@ def bank_setup():
     return render_template("bank_setup.html")
 
 
-@app.route("/send-otp")
-@login_required
-def send_otp_route():
-    code = create_otp(current_user.id)
-    # In production send via SMS/LINE; here we print for demo
-    print(f"OTP for {current_user.username}: {code}")
-    return redirect(url_for("verify_otp_route"))
-
-
-@app.route("/verify-otp", methods=["GET", "POST"])
-@login_required
-def verify_otp_route():
-    if request.method == "POST":
-        if verify_otp(current_user.id, request.form.get("otp")):
-            return "OTP ถูกต้อง ยืนยันแล้ว"
-        return "OTP ไม่ถูกต้อง หรือหมดอายุ"
-    return render_template("otp_form.html")
 
 
 @app.route("/deposit", methods=["GET", "POST"])
@@ -873,10 +1049,40 @@ def deposit_page():
         )
     return render_template("deposit.html")
 
+
+@app.route('/deposit/history')
+@login_required
+def deposit_history():
+    logs = DepositPending.query.filter_by(user_id=current_user.id).order_by(DepositPending.created_at.desc()).all()
+    return render_template('deposit_history.html', logs=logs)
+
 @app.route("/logs")
 @login_required
 def logs_page():
     return render_template("logs.html")
+
+
+@app.route('/admin/logs')
+@login_required
+def admin_logs_page():
+    if not current_user.is_admin:
+        return "คุณไม่มีสิทธิ์เข้าถึงหน้านี้"
+    logs = LogEntry.query.order_by(LogEntry.timestamp.desc()).limit(100).all()
+    return render_template('admin_logs.html', logs=logs)
+
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    if not current_user.is_admin:
+        return "Forbidden", 403
+    logs = DepositWebhookLog.query.order_by(DepositWebhookLog.created_at.desc()).limit(50).all()
+    return render_template('admin_dashboard.html', logs=logs)
+
+
+def notify_admin(msg: str) -> None:
+    """Emit a simple notification message to all admin clients."""
+    socketio.emit('admin_notify', {'msg': msg}, broadcast=True)
 
 
 @app.route("/api/health")

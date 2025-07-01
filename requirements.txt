@@ -13,3 +13,6 @@ python-dotenv
 flask-login
 bcrypt
 qrcode
+line-bot-sdk
+pypromptpay
+segno

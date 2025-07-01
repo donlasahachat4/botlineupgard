@@ -6762,6 +6762,10 @@ def verify_slip():
                 if row:
                     retrieved_json = json.loads(row[0])  # Convert string back to JSON
                     receive_name = retrieved_json.get('account',{}).get('name')
+                else:
+                    cursor.execute("UPDATE incomming_slip SET status = ? WHERE transaction_id = ?", (2, transaction_id))
+                    conn.commit()
+                    return jsonify({'error':'Reference receiver data missing'}),400
                 amount = data.get('amount',0)
                 if amount != 0:
                     cursor.execute("UPDATE incomming_slip SET amount = ? WHERE transaction_id = ?", (amount, transaction_id))
